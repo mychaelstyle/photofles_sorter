@@ -2,55 +2,11 @@ import os
 import sys
 import shutil
 from struct import *
-from PIL import Image
-from PIL.ExifTags import TAGS
+import cr2
+import jpeg
+import movie
 
-def get_exif_from_cr2buf( buffer, ifd_offset ):
-    (num_of_entries,) = unpack_from('H', buffer, ifd_offset)
-    print("ifd #0 contains %d entries"%num_of_entries)
-    # Work out where the date time is stored
-    datetime_offset = -1
-    for entry_num in range(0,num_of_entries-1):
-        (tag_id, tag_type, num_of_value, value) = unpack_from('HHLL', buffer, ifd_offset+2+entry_num*12)
-        print("%s : %s : %s : %s " % (tag_id, tag_type, num_of_value, value))
-        #if tag_id == 0x0132:
-        if tag_id == 306:
-            datetime_offset = value
-    return datetime_offset
-
-def get_exif_from_cr2(filepath):
-    with open(filepath, "rb") as f:
-        buffer = f.read(1024)
-        datetime_offset = get_exif_from_cr2buf(buffer, 0x10)
-        print("offset = %s" % datetime_offset)
-        return unpack_from(20*'s', buffer, datetime_offset)
-
-def get_exif(img):
-    """
-    指定のイメージオブジェクトのexif情報DateTimeOriginalを返す
-
-    Parameters
-    ----------
-    img : Image
-        対象のイメージオブジェクト
-
-    Returns
-    -------
-    datetimeoriginal : string
-        EXIF情報のDateTimeOriginal文字列
-    """
-    exif = img._getexif()
-    try:
-        for id,val in exif.items():
-            tg = TAGS.get(id,id)
-            if tg == "DateTimeOriginal":
-                return val
-    except AttributeError:
-        return None
-
-    return None
-
-def list_files(dirpath,func):
+def list_files(dirpath):
     """
     指定フォルダ以下のファイルを再帰的にリストアップし
     (dirname,filemane,funcの結果)のタプルをyieldで返す
@@ -68,19 +24,27 @@ def list_files(dirpath,func):
         (ディレクトリパス, ファイル名, 関数実行結果)
     """
     for filename in os.listdir(dirpath):
+        datetime_string = None
         path = os.path.join(dirpath, filename)
-        if filename.startswith("._"):
+        if 0 == os.path.getsize(path):
+            print(path + " is empty file")
+        elif filename.startswith("._"):
             print(path + " is hidden file")
         elif os.path.isdir(path):
-            list_files(path,func)
+            list_files(path)
         else:
-            try:
-                img = Image.open(path)
-                datetimeinfo = func(img)
-                yield (dirpath,filename,datetimeinfo)
-                img.close()
-            except:
-                yield (dirpath,filename,None)
+            if filename.endswith(".JPG") or filename.endswith(".jpg"):
+                datetime_string = jpeg.get_datetime(path)
+                print("%s : %s" % (path, datetime_string))
+            elif filename.endswith(".CR2") or filename.endswith(".cr2"):
+                datetime_string = cr2.getCR2DateTime(path)
+                print("%s : %s" % (path, datetime_string))
+            elif filename.endswith(".MOV") or filename.endswith(".mov"):
+                datetime_string = movie.get_created_time(path)
+                print("%s : %s" % (path, datetime_string))
+            else:
+                print("Not an image file : %s" % path)
+
 
 def move_to_proper_dir(taginfo,dst):
     """
@@ -136,16 +100,16 @@ def main():
         print("src="+ src)
         print("dst="+ dst)
         if os.path.isdir(src) and os.path.isdir(dst):
-            for taginfo in list_files(args[1],get_exif):
-                print(taginfo)
-                move_to_proper_dir(taginfo,dst)
+            list_files(args[1])
+#                move_to_proper_dir(taginfo,dst)
         else:
             print(src + " or " + dst + " is not a folder")
     else:
         print("src and dst is required!")
 
 if __name__ == '__main__':
-    #main()
-    dt = get_exif_from_cr2('/Volumes/HD-MN2017/JPEGS/2014/12/IMG_4437.CR2')
-    print(dt)
+    main()
+#    path = '/Volumes/HD-MN2017/JPEGS/2014/12/IMG_4437.CR2';
+#    datetime_string = cr2.getCR2DateTime(path)
+#    print(path + " : "+ datetime_string)
 
