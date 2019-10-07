@@ -5,6 +5,7 @@ from struct import *
 import cr2
 import jpeg
 import movie
+import datetime
 
 def list_files(dirpath):
     """
@@ -50,49 +51,27 @@ def list_files(dirpath):
                 print("%s : %s" % (path, datetime_string))
             else:
                 print("Not an image file : %s" % path)
+                ot = os.stat(path).st_ctime
+                dt = datetime.datetime.fromtimestamp(ot)
+                datetime_string = dt.strftime("%Y:%m:%d %H:%M:%S")
+                print("%s : %s" % (path, datetime_string))
 
 
-def move_to_proper_dir(taginfo,dst):
+
+
+def move_to_proper_dir(dirname, filename, datetime_string):
     """
     ファイル情報と出力先フォルダパスを受け取って適切なフォルダにファイルを移動する
-
-    Parameters
-    ----------
-    taginfo : tuple
-        (フォルダパス,ファイル名,情報文字列)
-    dst : string
-        出力先フォルダパス
     """
-    dirpath = taginfo[0]
-    filename = taginfo[1]
-    dt = taginfo[2]
-    path = os.path.join(dirpath,filename)
-    if dt is None:
-        print( path + " is not exif file" )
-        unknowndir = os.path.join(dirpath,"Unknown")
-        if not os.path.exists(unknowndir):
-            os.makedirs(unknowndir)
-        shutil.copy(path,unknowndir)
-    elif filename.endswith(".MOV") or filename.endswith(".mov"):
-        [d,t] = dt.split()
-        [yyyy,mm,dd] = d.split(":")
-        dp = os.path.join(dst,"MOVIE")
-        dp = os.path.join(dp,yyyy)
-        dp = os.path.join(dp,mm)
-        print(dp)
-        if not os.path.exists(dp):
-            os.makedirs(dp)
-        shutil.copy(path,dp)
-    else:
-        [d,t] = dt.split()
-        [yyyy,mm,dd] = d.split(":")
-        dp = os.path.join(dst,"JPEG")
-        dp = os.path.join(dp,yyyy)
-        dp = os.path.join(dp,mm)
-        print(dp)
-        if not os.path.exists(dp):
-            os.makedirs(dp)
-        shutil.copy(path,dp)
+    [d,t] = datetime_string.split()
+    [yyyy,mm,dd] = d.split(":")
+    dp = os.path.join(dst,dirname)
+    dp = os.path.join(dp,yyyy)
+    dp = os.path.join(dp,mm)
+    print(dp)
+    if not os.path.exists(dp):
+        os.makedirs(dp)
+    shutil.copy(path,dp)
 
 def main():
     """
