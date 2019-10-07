@@ -42,6 +42,12 @@ def list_files(dirpath):
             elif filename.endswith(".MOV") or filename.endswith(".mov"):
                 datetime_string = movie.get_created_time(path)
                 print("%s : %s" % (path, datetime_string))
+            elif filename.endswith(".MP4") or filename.endswith(".mp4"):
+                datetime_string = movie.get_created_time(path)
+                print("%s : %s" % (path, datetime_string))
+            elif filename.endswith(".3GP") or filename.endswith(".3gp"):
+                datetime_string = movie.get_created_time(path)
+                print("%s : %s" % (path, datetime_string))
             else:
                 print("Not an image file : %s" % path)
 
