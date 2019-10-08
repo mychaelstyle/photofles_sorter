@@ -6,6 +6,7 @@ from media import cr2
 from media import jpeg
 from media import movie
 import datetime
+import logging
 
 def list_files(dirpath):
     """
@@ -88,6 +89,7 @@ def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string):
     if not os.path.exists(dp):
         os.makedirs(dp)
     path = os.path.join(dirpath, filename)
+    logging.info("%s:%s", path, os.path.join(dp,filename))
     shutil.copy(path,dp)
 
 def main():
@@ -95,19 +97,27 @@ def main():
     メイン関数
     第一引数に元フォルダ、第二引数に異動先フォルダのパス文字列を渡して実行する
     """
+    dt_now = datetime.datetime.now()
+    dt_log = dt_now.strftime("%Y-%m-%d-%H%M%S")
+    logging.basicConfig(filename='info-%s.log'%dt_log, level=logging.DEBUG)
+
     args = sys.argv
     if 3 <= len(args):
         src = args[1]
         dst = args[2]
+        logging.info('src = %s', src)
+        logging.info('dst = %s', dst)
         print("src="+ src)
         print("dst="+ dst)
         if os.path.isdir(src) and os.path.isdir(dst):
             for (ftype, dirpath, filename, datetime_string) in list_files(args[1]):
                 move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string)
         else:
+            logging.info(src + " or " + dst + " is not a folder")
             print(src + " or " + dst + " is not a folder")
     else:
         print("src and dst is required!")
+        logging.info("src and dst is required!")
 
 if __name__ == '__main__':
     main()
