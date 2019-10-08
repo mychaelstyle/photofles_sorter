@@ -6,6 +6,7 @@ from media import cr2
 from media import jpeg
 from media import movie
 import datetime
+import logging
 
 def list_files(dirpath):
     """
@@ -27,10 +28,10 @@ def list_files(dirpath):
         path = os.path.join(dirpath, filename)
         if 0 == os.path.getsize(path):
             print(path + " is empty file")
-            yield ("EMPTY", dirpath, filename, None)
+            yield ("TRUSH", dirpath, filename, None)
         elif filename.startswith("._"):
             print(path + " is hidden file")
-            yield ("HIDDEN", dirpath, filename, None)
+            yield ("TRUSH", dirpath, filename, None)
         elif os.path.isdir(path):
             yield from list_files(path)
         else:
@@ -61,7 +62,7 @@ def list_files(dirpath):
                 print("%s : %s" % (path, datetime_string))
                 yield ("OTHER", dirpath, filename, datetime_string)
 
-def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string):
+def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, overwrite):
     """
     ファイル情報と出力先フォルダパスを受け取って適切なフォルダにファイルを移動する
 
@@ -77,6 +78,8 @@ def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string):
         移動元ファイル名
     datetime_string: string
         撮影日時文字列
+    overwrite: boolean
+        上書きする場合はTrue
 
     """
     [d,t] = datetime_string.split()
@@ -88,26 +91,54 @@ def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string):
     if not os.path.exists(dp):
         os.makedirs(dp)
     path = os.path.join(dirpath, filename)
-    shutil.copy(path,dp)
+    dpath = os.path.join(dp,filename)
+
+    if not os.path.exists(dpath) or overwrite:
+        logging.info("%s:%s", path, dpath)
+        shutil.copy(path,dpath)
+    else:
+        elms = filename.split(".")
+        extension = elms.pop((len(elms)-1))
+        basename = ".".join(elms)
+        for num in range(1, 99):
+            fn = "%s(%s).%s" % (basename, num, extension)
+            dpf = os.path.join(dp, fn)
+            if not os.path.exists(dpf):
+                logging.info("%s:%s", path, dpf)
+                shutil.copy(path,dpf)
+                break
 
 def main():
     """
     メイン関数
     第一引数に元フォルダ、第二引数に異動先フォルダのパス文字列を渡して実行する
     """
+    dt_now = datetime.datetime.now()
+    dt_log = dt_now.strftime("%Y-%m-%d-%H%M%S")
+    logging.basicConfig(filename='info-%s.log'%dt_log, level=logging.DEBUG)
+
     args = sys.argv
     if 3 <= len(args):
         src = args[1]
         dst = args[2]
+        overwrite = False
+        if 4 <= len(args):
+            opt = args[3]
+            if "--force" == opt:
+                overwrite = True
+        logging.info('src = %s', src)
+        logging.info('dst = %s', dst)
         print("src="+ src)
         print("dst="+ dst)
         if os.path.isdir(src) and os.path.isdir(dst):
             for (ftype, dirpath, filename, datetime_string) in list_files(args[1]):
-                move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string)
+                move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, overwrite)
         else:
+            logging.info(src + " or " + dst + " is not a folder")
             print(src + " or " + dst + " is not a folder")
     else:
         print("src and dst is required!")
+        logging.info("src and dst is required!")
 
 if __name__ == '__main__':
     main()
