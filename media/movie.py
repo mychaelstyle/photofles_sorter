@@ -6,6 +6,6 @@ def get_created_time(path):
     response = proc.stdout.decode("utf8")+"\n"+(proc.stderr.decode("utf8"))
     for line in response.splitlines():
         if "creation_time" in line:
-            str = line.replace("    creation_time   : ","").replace("T"," ").replace("Z","")
+            str = line.strip().replace("creation_time","").strip().replace(": ","").strip().replace("T"," ").replace("Z","")
             return str.replace("-",":")
 
