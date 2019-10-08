@@ -2,9 +2,9 @@ import os
 import sys
 import shutil
 from struct import *
-import cr2
-import jpeg
-import movie
+from media import cr2
+from media import jpeg
+from media import movie
 import datetime
 
 def list_files(dirpath):
