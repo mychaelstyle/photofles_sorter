@@ -8,6 +8,42 @@ from media import movie
 import datetime
 import logging
 
+def get_info(dirpath,filename):
+    path = os.path.join(dirpath,filename)
+    size = os.path.getsize(path)
+    if 0 == size:
+        print(path + " is empty file")
+        return ("TRUSH", dirpath, filename, None, 0)
+    elif filename.startswith("."):
+        print(path + " is hidden file")
+        return ("TRUSH", dirpath, filename, None, size)
+    elif filename.endswith(".JPG") or filename.endswith(".jpg"):
+        datetime_string = jpeg.get_datetime(path)
+        print("%s : %s" % (path, datetime_string))
+        return ("JPG", dirpath, filename, datetime_string, size)
+    elif filename.endswith(".CR2") or filename.endswith(".cr2"):
+        datetime_string = cr2.getCR2DateTime(path)
+        print("%s : %s" % (path, datetime_string))
+        return ("RAW", dirpath, filename, datetime_string, size)
+    elif filename.endswith(".MOV") or filename.endswith(".mov"):
+        datetime_string = movie.get_created_time(path)
+        print("%s : %s" % (path, datetime_string))
+        return ("MOVIE", dirpath, filename, datetime_string, size)
+    elif filename.endswith(".MP4") or filename.endswith(".mp4"):
+        datetime_string = movie.get_created_time(path)
+        print("%s : %s" % (path, datetime_string))
+        return ("MOVIE", dirpath, filename, datetime_string, size)
+    elif filename.endswith(".3GP") or filename.endswith(".3gp"):
+        datetime_string = movie.get_created_time(path)
+        print("%s : %s" % (path, datetime_string))
+        return ("MOVIE", dirpath, filename, datetime_string, size)
+    else:
+        ot = os.stat(path).st_ctime
+        dt = datetime.datetime.fromtimestamp(ot)
+        datetime_string = dt.strftime("%Y:%m:%d %H:%M:%S")
+        print("%s : %s" % (path, datetime_string))
+        return ("OTHER", dirpath, filename, datetime_string, size)
+
 def list_files(dirpath):
     """
     指定フォルダ以下のファイルを再帰的にリストアップし
@@ -25,44 +61,14 @@ def list_files(dirpath):
     """
     for filename in os.listdir(dirpath):
         datetime_string = None
-        path = os.path.join(dirpath, filename)
-        if 0 == os.path.getsize(path):
-            print(path + " is empty file")
-            yield ("TRUSH", dirpath, filename, None)
-        elif filename.startswith("._"):
-            print(path + " is hidden file")
-            yield ("TRUSH", dirpath, filename, None)
-        elif os.path.isdir(path):
-            yield from list_files(path)
+        src_path = os.path.join(dirpath, filename)
+        size = os.path.getsize(src_path)
+        if os.path.isdir(src_path):
+            yield from list_files(src_path)
         else:
-            if filename.endswith(".JPG") or filename.endswith(".jpg"):
-                datetime_string = jpeg.get_datetime(path)
-                print("%s : %s" % (path, datetime_string))
-                yield ("JPG", dirpath, filename, datetime_string)
-            elif filename.endswith(".CR2") or filename.endswith(".cr2"):
-                datetime_string = cr2.getCR2DateTime(path)
-                print("%s : %s" % (path, datetime_string))
-                yield ("RAW", dirpath, filename, datetime_string)
-            elif filename.endswith(".MOV") or filename.endswith(".mov"):
-                datetime_string = movie.get_created_time(path)
-                print("%s : %s" % (path, datetime_string))
-                yield ("MOVIE", dirpath, filename, datetime_string)
-            elif filename.endswith(".MP4") or filename.endswith(".mp4"):
-                datetime_string = movie.get_created_time(path)
-                print("%s : %s" % (path, datetime_string))
-                yield ("MOVIE", dirpath, filename, datetime_string)
-            elif filename.endswith(".3GP") or filename.endswith(".3gp"):
-                datetime_string = movie.get_created_time(path)
-                print("%s : %s" % (path, datetime_string))
-                yield ("MOVIE", dirpath, filename, datetime_string)
-            else:
-                ot = os.stat(path).st_ctime
-                dt = datetime.datetime.fromtimestamp(ot)
-                datetime_string = dt.strftime("%Y:%m:%d %H:%M:%S")
-                print("%s : %s" % (path, datetime_string))
-                yield ("OTHER", dirpath, filename, datetime_string)
+            yield get_info(dirpath, filename)
 
-def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, overwrite):
+def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, overwrite):
     """
     ファイル情報と出力先フォルダパスを受け取って適切なフォルダにファイルを移動する
 
@@ -78,35 +84,45 @@ def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, overwrite
         移動元ファイル名
     datetime_string: string
         撮影日時文字列
+    size: long
+        ファイルサイズ    
     overwrite: boolean
         上書きする場合はTrue
 
     """
-    [d,t] = datetime_string.split()
-    [yyyy,mm,dd] = d.split(":")
-    dp = os.path.join(dst, ftype)
-    dp = os.path.join(dp, yyyy)
-    dp = os.path.join(dp, mm)
-    print(dp)
-    if not os.path.exists(dp):
-        os.makedirs(dp)
-    path = os.path.join(dirpath, filename)
-    dpath = os.path.join(dp,filename)
+    src_path = os.path.join(dirpath, filename)
+    dest_dir= dst
+    if datetime_string is None:
+        dest_dir= os.path.join(dst,ftype)
+    else:        
+        [d,t] = datetime_string.split()
+        [yyyy,mm,dd] = d.split(":")
+        dest_dir= os.path.join(dst, ftype)
+        dest_dir= os.path.join(dest_dir, yyyy)
+        dest_dir= os.path.join(dest_dir, mm)
+    dest_path = os.path.join(dest_dir,filename)
+    print(dest_dir)
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
 
-    if not os.path.exists(dpath) or overwrite:
-        logging.info("%s:%s", path, dpath)
-        shutil.copy(path,dpath)
+    if not os.path.exists(dest_path) or overwrite:
+        logging.info("%s:%s", src_path, dest_path)
+        shutil.copy(src_path,dest_path)
     else:
-        elms = filename.split(".")
-        extension = elms.pop((len(elms)-1))
-        basename = ".".join(elms)
-        for num in range(1, 99):
-            fn = "%s(%s).%s" % (basename, num, extension)
-            dpf = os.path.join(dp, fn)
-            if not os.path.exists(dpf):
-                logging.info("%s:%s", path, dpf)
-                shutil.copy(path,dpf)
-                break
+        (dftype, ddirpath, dfilename, ddatetime_string, dsize) = get_info(dest_dir,filename)
+        if filename==dfilename and datetime_string==ddatetime_string and size==dsize:
+            print("%s : same file exists" % src_path)
+        else:
+            elms = filename.split(".")
+            extension = elms.pop((len(elms)-1))
+            basename = ".".join(elms)
+            for num in range(1, 99):
+                fn = "%s(%s).%s" % (basename, num, extension)
+                dpf = os.path.join(dest_dir, fn)
+                if not os.path.exists(dpf):
+                    logging.info("%s:%s", src_path, dpf)
+                    shutil.copy(src_path,dpf)
+                    break
 
 def main():
     """
@@ -131,8 +147,8 @@ def main():
         print("src="+ src)
         print("dst="+ dst)
         if os.path.isdir(src) and os.path.isdir(dst):
-            for (ftype, dirpath, filename, datetime_string) in list_files(args[1]):
-                move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, overwrite)
+            for (ftype, dirpath, filename, datetime_string, size) in list_files(args[1]):
+                move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, overwrite)
         else:
             logging.info(src + " or " + dst + " is not a folder")
             print(src + " or " + dst + " is not a folder")
