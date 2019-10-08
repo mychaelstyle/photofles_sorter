@@ -62,10 +62,10 @@ def list_files(dirpath):
     for filename in os.listdir(dirpath):
         datetime_string = None
         src_path = os.path.join(dirpath, filename)
-        size = os.path.getsize(src_path)
         if os.path.isdir(src_path):
             yield from list_files(src_path)
-        else:
+        elif not filename.startswith('.'):
+            size = os.path.getsize(src_path)
             yield get_info(dirpath, filename)
 
 def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, overwrite):
@@ -93,7 +93,8 @@ def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, ove
     src_path = os.path.join(dirpath, filename)
     dest_dir= dst
     if datetime_string is None:
-        dest_dir= os.path.join(dst,ftype)
+        return
+#        dest_dir= os.path.join(dst,ftype)
     else:        
         [d,t] = datetime_string.split()
         [yyyy,mm,dd] = d.split(":")
@@ -107,7 +108,7 @@ def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, ove
 
     if not os.path.exists(dest_path) or overwrite:
         logging.info("%s:%s", src_path, dest_path)
-        shutil.copy(src_path,dest_path)
+        shutil.move(src_path,dest_path)
     else:
         (dftype, ddirpath, dfilename, ddatetime_string, dsize) = get_info(dest_dir,filename)
         if filename==dfilename and datetime_string==ddatetime_string and size==dsize:
@@ -121,7 +122,7 @@ def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, ove
                 dpf = os.path.join(dest_dir, fn)
                 if not os.path.exists(dpf):
                     logging.info("%s:%s", src_path, dpf)
-                    shutil.copy(src_path,dpf)
+                    shutil.move(src_path,dpf)
                     break
 
 def main():
