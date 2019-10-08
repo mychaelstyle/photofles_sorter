@@ -10,19 +10,17 @@ import datetime
 def list_files(dirpath):
     """
     指定フォルダ以下のファイルを再帰的にリストアップし
-    (dirname,filemane,funcの結果)のタプルをyieldで返す
+    (filetype, dirpath, filemane, datetime_string)のタプルをyieldで返す
 
     Parameters
     ----------
     dirname : string
         対象のフォルダパス
-    func : def
-        対象のファイルパスを処理して値を返す関数
 
     Returns
     -------
     fileinfo : tuple
-        (ディレクトリパス, ファイル名, 関数実行結果)
+        (ファイルタイプ文字列, ディレクトリパス, ファイル名, 撮影日時)
     """
     for filename in os.listdir(dirpath):
         datetime_string = None
@@ -66,6 +64,20 @@ def list_files(dirpath):
 def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string):
     """
     ファイル情報と出力先フォルダパスを受け取って適切なフォルダにファイルを移動する
+
+    Parameters
+    ----------
+    dst: string
+        出力対象のフォルダパス
+    ftype: string
+        ファイルタイプ
+    dirpath: string
+        移動元ファイルのディレクトリ
+    filename: string
+        移動元ファイル名
+    datetime_string: string
+        撮影日時文字列
+
     """
     [d,t] = datetime_string.split()
     [yyyy,mm,dd] = d.split(":")

@@ -17,7 +17,7 @@ recognised_tags = {
     0x8769 : 'EXIF',
     0x8825 : 'GPS data'};
 
-def GetHeaderFromCR2( buffer ):
+def get_header_from_cr2( buffer ):
     # Unpack the header into a tuple
     header = unpack_from('HHLHBBL', buffer)
 
@@ -31,27 +31,13 @@ def GetHeaderFromCR2( buffer ):
 
     return header
 
-def FindDateTimeOffsetFromCR2( buffer, ifd_offset, endian_flag ):
-    # Read the number of entries in IFD #0
+def find_datetime_offset_from_cr2( buffer, ifd_offset, endian_flag ):
     (num_of_entries,) = unpack_from(endian_flag+'H', buffer, ifd_offset)
-#    print("Image File Directory #0 contains %d entries\n"%num_of_entries)
-
-    # Work out where the date time is stored
     datetime_offset = -1
 
-    # Go through all the entries looking for the datetime field
-#    print(" id  | type |  number  |  value   ")
     for entry_num in range(0,num_of_entries):
-
-        # Grab this IFD entry
-        (tag_id, tag_type, num_of_value, value) = unpack_from(endian_flag+'HHLL', buffer, ifd_offset+2+entry_num*12)
-
-        # Print out the entry for information
-#        print("%04X | %04X | %08X | %08X "%(tag_id, tag_type, num_of_value, value),)
-#        if tag_id in recognised_tags:
-#            print(recognised_tags[tag_id])
-
-        # If this is the datetime one we're looking for, make a note of the offset
+        (tag_id, tag_type, num_of_value, value) = unpack_from(
+                endian_flag+'HHLL', buffer, ifd_offset+2+entry_num*12)
         if tag_id == 0x0132:
             assert tag_type == 2
             assert num_of_value == 20
@@ -61,27 +47,18 @@ def FindDateTimeOffsetFromCR2( buffer, ifd_offset, endian_flag ):
 
 def getCR2DateTime(path):
     with open(path, "rb") as f:
-        # read the first 1kb of the file should be enough to find the date/time
         buffer = f.read(1024) 
+        (byte_order, tiff_magic_word, tiff_offset, cr2_magic_word,
+                cr2_major_version, cr2_minor_version, raw_ifd_offset) = get_header_from_cr2(buffer)
 
-        # Grab the various parts of the header
-        (byte_order, tiff_magic_word, tiff_offset, cr2_magic_word, cr2_major_version, cr2_minor_version, raw_ifd_offset) = GetHeaderFromCR2(buffer)
-
-        # Set the endian flag
         endian_flag = '@'
         if byte_order == 0x4D4D:
-            # motorola format
             endian_flag = '>'
         elif byte_order == 0x4949:
-            # intel format
             endian_flag = '<'
 
-        # Search for the datetime entry offset
-        datetime_offset = FindDateTimeOffsetFromCR2(buffer, 0x10, endian_flag)
-#        print("Datetime offset = %s" % datetime_offset)
-
+        datetime_offset = find_datetime_offset_from_cr2(buffer, 0x10, endian_flag)
         datetime_strings = unpack_from(20*'c', buffer, datetime_offset)
-#        print(datetime_strings)
 
         datetime_string = ""
         for str in datetime_strings:
