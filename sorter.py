@@ -9,40 +9,42 @@ import datetime
 import logging
 
 def get_info(dirpath,filename):
+    """
+    ファイルの情報に撮影日時の情報を付与して取得します。
+
+    Parameters
+    ----------
+    dirpath : string
+        対象ディレクトリパス
+    filename : string
+        対象ファイル名
+    """
     path = os.path.join(dirpath,filename)
     size = os.path.getsize(path)
     if 0 == size:
-        print(path + " is empty file")
         return ("TRUSH", dirpath, filename, None, 0)
     elif filename.startswith("."):
-        print(path + " is hidden file")
         return ("TRUSH", dirpath, filename, None, size)
     elif filename.endswith(".JPG") or filename.endswith(".jpg"):
         datetime_string = jpeg.get_datetime(path)
-        print("%s : %s" % (path, datetime_string))
         return ("JPG", dirpath, filename, datetime_string, size)
     elif filename.endswith(".CR2") or filename.endswith(".cr2"):
         datetime_string = cr2.getCR2DateTime(path)
-        print("%s : %s" % (path, datetime_string))
         return ("RAW", dirpath, filename, datetime_string, size)
     elif filename.endswith(".MOV") or filename.endswith(".mov"):
         datetime_string = movie.get_created_time(path)
-        print("%s : %s" % (path, datetime_string))
         return ("MOVIE", dirpath, filename, datetime_string, size)
     elif filename.endswith(".MP4") or filename.endswith(".mp4"):
         datetime_string = movie.get_created_time(path)
-        print("%s : %s" % (path, datetime_string))
         return ("MOVIE", dirpath, filename, datetime_string, size)
     elif filename.endswith(".3GP") or filename.endswith(".3gp"):
         datetime_string = movie.get_created_time(path)
-        print("%s : %s" % (path, datetime_string))
         return ("MOVIE", dirpath, filename, datetime_string, size)
     else:
-        ot = os.stat(path).st_ctime
-        dt = datetime.datetime.fromtimestamp(ot)
-        datetime_string = dt.strftime("%Y:%m:%d %H:%M:%S")
-        print("%s : %s" % (path, datetime_string))
-        return ("OTHER", dirpath, filename, datetime_string, size)
+        #ot = os.stat(path).st_ctime
+        #dt = datetime.datetime.fromtimestamp(ot)
+        #datetime_string = dt.strftime("%Y:%m:%d %H:%M:%S")
+        return ("OTHER", dirpath, filename, None, size)
 
 def list_files(dirpath):
     """
@@ -62,10 +64,10 @@ def list_files(dirpath):
     for filename in os.listdir(dirpath):
         datetime_string = None
         src_path = os.path.join(dirpath, filename)
-        size = os.path.getsize(src_path)
         if os.path.isdir(src_path):
             yield from list_files(src_path)
         else:
+            size = os.path.getsize(src_path)
             yield get_info(dirpath, filename)
 
 def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, overwrite):
@@ -93,25 +95,29 @@ def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, ove
     src_path = os.path.join(dirpath, filename)
     dest_dir= dst
     if datetime_string is None:
-        dest_dir= os.path.join(dst,ftype)
+        logging.info("Skip:No timestamp:%s:", src_path)
+        print("Skip:No timestamp:%s:" % src_path)
+        return
     else:        
         [d,t] = datetime_string.split()
         [yyyy,mm,dd] = d.split(":")
         dest_dir= os.path.join(dst, ftype)
         dest_dir= os.path.join(dest_dir, yyyy)
         dest_dir= os.path.join(dest_dir, mm)
+
     dest_path = os.path.join(dest_dir,filename)
-    print(dest_dir)
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
 
     if not os.path.exists(dest_path) or overwrite:
-        logging.info("%s:%s", src_path, dest_path)
-        shutil.copy(src_path,dest_path)
+        logging.info("Move:done:%s:%s", src_path, dest_path)
+        print("Move:done:%s:%s" % (src_path,dest_path))
+        shutil.move(src_path,dest_path)
     else:
         (dftype, ddirpath, dfilename, ddatetime_string, dsize) = get_info(dest_dir,filename)
         if filename==dfilename and datetime_string==ddatetime_string and size==dsize:
-            print("%s : same file exists" % src_path)
+            logging.info("Skip:Same file exists:%s:%s", src_path, dest_path)
+            print("Skip:same file exists:%s:%s" % (src_path, dest_path))
         else:
             elms = filename.split(".")
             extension = elms.pop((len(elms)-1))
@@ -120,8 +126,9 @@ def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, ove
                 fn = "%s(%s).%s" % (basename, num, extension)
                 dpf = os.path.join(dest_dir, fn)
                 if not os.path.exists(dpf):
-                    logging.info("%s:%s", src_path, dpf)
-                    shutil.copy(src_path,dpf)
+                    logging.info("Move:done:%s:%s", src_path, dpf)
+                    print("Move:done:%s:%s" % (src_path,dest_path))
+                    shutil.move(src_path,dpf)
                     break
 
 def main():
@@ -150,11 +157,9 @@ def main():
             for (ftype, dirpath, filename, datetime_string, size) in list_files(args[1]):
                 move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, overwrite)
         else:
-            logging.info(src + " or " + dst + " is not a folder")
             print(src + " or " + dst + " is not a folder")
     else:
         print("src and dst is required!")
-        logging.info("src and dst is required!")
 
 if __name__ == '__main__':
     main()
