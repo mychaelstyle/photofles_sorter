@@ -106,6 +106,6 @@ venv.bak/
 # MacOS
 .DS_Store
 
-test/tmp/*
+tests/tmp/*
 info-*
 
