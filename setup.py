@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-install_requires = ['pillow','ffprobe']
+install_requires = ['pillow','ffprobe','pytest']
 
 dependency_links = []
 
