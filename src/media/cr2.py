@@ -45,7 +45,7 @@ def find_datetime_offset_from_cr2( buffer, ifd_offset, endian_flag ):
 
     return datetime_offset
 
-def getCR2DateTime(path):
+def get_datetime(path):
     with open(path, "rb") as f:
         buffer = f.read(1024) 
         (byte_order, tiff_magic_word, tiff_offset, cr2_magic_word,
@@ -63,5 +63,5 @@ def getCR2DateTime(path):
         datetime_string = ""
         for str in datetime_strings:
             datetime_string += str.decode()
-        return datetime_string
+        return datetime_string.strip("\r\n\0")
 

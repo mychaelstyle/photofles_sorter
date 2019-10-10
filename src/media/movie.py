@@ -1,6 +1,6 @@
 import subprocess, time, os, sys
 
-def get_created_time(path):
+def get_datetime(path):
     proc = subprocess.run(["/usr/local/bin/ffprobe","-show_chapters","-hide_banner",path],
             stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     response = proc.stdout.decode("utf8")+"\n"+(proc.stderr.decode("utf8"))

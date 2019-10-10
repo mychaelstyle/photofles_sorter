@@ -23,16 +23,16 @@ def get_info(dirpath,filename):
             datetime_string = jpeg.get_datetime(path)
             return ("JPG", dirpath, filename, datetime_string, size)
         elif fnlower.endswith(".cr2"):
-            datetime_string = cr2.getCR2DateTime(path)
+            datetime_string = cr2.get_datetime(path)
             return ("RAW", dirpath, filename, datetime_string, size)
         elif fnlower.endswith(".mov"):
-            datetime_string = movie.get_created_time(path)
+            datetime_string = movie.get_datetime(path)
             return ("MOVIE", dirpath, filename, datetime_string, size)
         elif fnlower.endswith(".mp4"):
-            datetime_string = movie.get_created_time(path)
+            datetime_string = movie.get_datetime(path)
             return ("MOVIE", dirpath, filename, datetime_string, size)
         elif fnlower.endswith(".3gp"):
-            datetime_string = movie.get_created_time(path)
+            datetime_string = movie.get_datetime(path)
             return ("MOVIE", dirpath, filename, datetime_string, size)
         else:
             #ot = os.stat(path).st_ctime

@@ -53,7 +53,7 @@ def is_equal(path1, path2):
         return False
 
     for key in items1:
-        val = items[key]
+        val = items1[key]
         if not key in items2.keys():
             return False
         if not val == items2[key]:
