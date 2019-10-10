@@ -2,52 +2,12 @@ import os
 import sys
 import shutil
 from struct import *
+import media
 from media import cr2
 from media import jpeg
 from media import movie
 import datetime
 import logging
-
-def get_info(dirpath,filename):
-    """
-    ファイルの情報に撮影日時の情報を付与して取得します。
-
-    Parameters
-    ----------
-    dirpath : string
-        対象ディレクトリパス
-    filename : string
-        対象ファイル名
-    """
-    path = os.path.join(dirpath,filename)
-    fnlower = filename.lower()
-    if os.path.exists(path):
-        size = os.path.getsize(path)
-        if 0 == size:
-            return ("TRUSH", dirpath, filename, None, 0)
-        elif filename.startswith("."):
-            return ("TRUSH", dirpath, filename, None, size)
-        elif fnlower.endswith(".jpg") or fnlower.endswith(".jpeg"):
-            datetime_string = jpeg.get_datetime(path)
-            return ("JPG", dirpath, filename, datetime_string, size)
-        elif fnlower.endswith(".cr2"):
-            datetime_string = cr2.getCR2DateTime(path)
-            return ("RAW", dirpath, filename, datetime_string, size)
-        elif fnlower.endswith(".mov"):
-            datetime_string = movie.get_created_time(path)
-            return ("MOVIE", dirpath, filename, datetime_string, size)
-        elif fnlower.endswith(".mp4"):
-            datetime_string = movie.get_created_time(path)
-            return ("MOVIE", dirpath, filename, datetime_string, size)
-        elif fnlower.endswith(".3gp"):
-            datetime_string = movie.get_created_time(path)
-            return ("MOVIE", dirpath, filename, datetime_string, size)
-        else:
-            #ot = os.stat(path).st_ctime
-            #dt = datetime.datetime.fromtimestamp(ot)
-            #datetime_string = dt.strftime("%Y:%m:%d %H:%M:%S")
-            return ("OTHER", dirpath, filename, None, size)
-    return (None, None, None, None, None)
 
 def list_files(dirpath):
     """
@@ -70,7 +30,7 @@ def list_files(dirpath):
         if os.path.isdir(src_path):
             yield from list_files(src_path)
         else:
-            yield get_info(dirpath, filename)
+            yield media.get_info(dirpath, filename)
 
 def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, overwrite):
     """
@@ -120,7 +80,7 @@ def move_to_proper_dir(dst, ftype, dirpath, filename, datetime_string, size, ove
         print("Moved:done:%s:%s" % (src_path,dest_path))
         shutil.move(src_path,dest_path)
     else:
-        (dftype, ddirpath, dfilename, ddatetime_string, dsize) = get_info(dest_dir,filename)
+        (dftype, ddirpath, dfilename, ddatetime_string, dsize) = media.get_info(dest_dir,filename)
         if filename==dfilename and datetime_string==ddatetime_string and size==dsize:
             dup_path = os.path.join(duplicated_dir,filename)
             if not os.path.exists(duplicated_dir):
