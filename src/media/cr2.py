@@ -1,4 +1,5 @@
 from struct import *
+import os
 
 recognised_tags = {
     0x0100 : 'imageWidth',
@@ -32,12 +33,17 @@ def get_header_from_cr2( buffer ):
     return header
 
 def find_datetime_offset_from_cr2( buffer, ifd_offset, endian_flag ):
+    if len(buffer) < ifd_offset:
+        return None
     (num_of_entries,) = unpack_from(endian_flag+'H', buffer, ifd_offset)
     datetime_offset = -1
 
     for entry_num in range(0,num_of_entries):
+        offset = ifd_offset+2+entry_num*12
+        if len(buffer) < offset:
+            return None
         (tag_id, tag_type, num_of_value, value) = unpack_from(
-                endian_flag+'HHLL', buffer, ifd_offset+2+entry_num*12)
+                endian_flag+'HHLL', buffer,offset)
         if tag_id == 0x0132:
             assert tag_type == 2
             assert num_of_value == 20
@@ -46,6 +52,12 @@ def find_datetime_offset_from_cr2( buffer, ifd_offset, endian_flag ):
     return datetime_offset
 
 def get_datetime(path):
+
+    #print(os.path.getsize(path))
+
+    if 0 == os.path.getsize(path):
+        return
+
     with open(path, "rb") as f:
         buffer = f.read(1024) 
         (byte_order, tiff_magic_word, tiff_offset, cr2_magic_word,
@@ -58,6 +70,9 @@ def get_datetime(path):
             endian_flag = '<'
 
         datetime_offset = find_datetime_offset_from_cr2(buffer, 0x10, endian_flag)
+        #print("buffer size=%s : offset=%s" % (len(buffer), datetime_offset))
+        if datetime_offset < 0 or len(buffer) < datetime_offset+20:
+            return None
         datetime_strings = unpack_from(20*'c', buffer, datetime_offset)
 
         datetime_string = ""
