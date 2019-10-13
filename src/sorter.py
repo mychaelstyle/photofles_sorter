@@ -27,7 +27,7 @@ def list_files(dirpath):
     for filename in os.listdir(dirpath):
         datetime_string = None
         src_path = os.path.join(dirpath, filename)
-        if os.path.isdir(src_path):
+        if os.path.isdir(src_path) and not filename.startswith('.'):
             yield from list_files(src_path)
         else:
             yield media.get_info(dirpath, filename)

@@ -1,82 +1,82 @@
 from struct import *
+import subprocess
 import os
 
-recognised_tags = {
-    0x0100 : 'imageWidth',
-    0x0101 : 'imageLength',
-    0x0102 : 'bitsPerSample',
-    0x0103 : 'compression',
-    0x010f : 'make',
-    0x0110 : 'model',
-    0x0111 : 'stripOffset',
-    0x0112 : 'orientation',
-    0x0117 : 'stripByteCounts',
-    0x011a : 'xResolution',
-    0x011b : 'yResolution',
-    0x0128 : 'resolutionUnit',
-    0x0132 : 'dateTime',
-    0x8769 : 'EXIF',
-    0x8825 : 'GPS data'};
+EXIFTOOL = "/usr/local/bin/exiftool"
+LABEL_DATETIME = "Date/Time Original"
 
-def get_header_from_cr2( buffer ):
-    # Unpack the header into a tuple
-    header = unpack_from('HHLHBBL', buffer)
+def get_info_strings(path):
+    """
+    exiftoolを実行して結果文字列をチャプター情報も含めて取得
 
-#    print("\nbyte_order = 0x%04X"%header[0])
-#    print("tiff_magic_word = %d"%header[1])
-#    print("tiff_offset = 0x%08X"%header[2])
-#    print("cr2_magic_word = %d"%header[3])
-#    print("cr2_major_version = %d"%header[4])
-#    print("cr2_minor_version = %d"%header[5])
-#    print("raw_ifd_offset = 0x%08X\n"%header[6])
+    Parameters
+    ----------
+    path : string
+        対象の写真ファイルパス
 
-    return header
-
-def find_datetime_offset_from_cr2( buffer, ifd_offset, endian_flag ):
-    if len(buffer) < ifd_offset:
+    Returns
+    -------
+    string
+        exiftoolの実行結果文字列、ファイルが存在しなかった場合はNone。
+    """
+    if not os.path.exists(path):
         return None
-    (num_of_entries,) = unpack_from(endian_flag+'H', buffer, ifd_offset)
-    datetime_offset = -1
+    proc = subprocess.run([EXIFTOOL,path],
+            stdout = subprocess.PIPE, stderr = subprocess.PIPE,
+            encoding = "utf8", errors='ignore')
+    response = proc.stdout+"\n"+(proc.stderr)
+    return response.strip()
 
-    for entry_num in range(0,num_of_entries):
-        offset = ifd_offset+2+entry_num*12
-        if len(buffer) < offset:
-            return None
-        (tag_id, tag_type, num_of_value, value) = unpack_from(
-                endian_flag+'HHLL', buffer,offset)
-        if tag_id == 0x0132:
-            assert tag_type == 2
-            assert num_of_value == 20
-            datetime_offset = value
+def get_exif_tag_value(path, tag):
+    strings = get_info_strings(path)
+    if strings is None:
+        return None
+    for line in strings.splitlines():
+        if line.startswith(tag):
+            line = line.strip()
+            cpos = line.find(':')
+            if cpos >= 0:
+                line = line[(cpos+1):]
+                return line.strip()
+            else:
+                return None
 
-    return datetime_offset
+def get_exif_dict(path):
+    strings = get_info_strings(path)
+    exifdict = {}
+    if strings is None:
+        return None
+    for line in strings.splitlines():
+        if line.strip().startswith("File ") or line.strip().startswith("Directory "):
+            continue
+        else:
+            cpos = line.find(':')
+            if cpos >= 0:
+                name = line[:cpos].strip()
+                val  = line[(cpos+1):].strip()
+                exifdict[name] = val
+    return exifdict
 
 def get_datetime(path):
-
-    #print(os.path.getsize(path))
-
     if 0 == os.path.getsize(path):
-        return
+        return None
+    return get_exif_tag_value(path, LABEL_DATETIME)
 
-    with open(path, "rb") as f:
-        buffer = f.read(1024) 
-        (byte_order, tiff_magic_word, tiff_offset, cr2_magic_word,
-                cr2_major_version, cr2_minor_version, raw_ifd_offset) = get_header_from_cr2(buffer)
-
-        endian_flag = '@'
-        if byte_order == 0x4D4D:
-            endian_flag = '>'
-        elif byte_order == 0x4949:
-            endian_flag = '<'
-
-        datetime_offset = find_datetime_offset_from_cr2(buffer, 0x10, endian_flag)
-        #print("buffer size=%s : offset=%s" % (len(buffer), datetime_offset))
-        if datetime_offset < 0 or len(buffer) < datetime_offset+20:
-            return None
-        datetime_strings = unpack_from(20*'c', buffer, datetime_offset)
-
-        datetime_string = ""
-        for str in datetime_strings:
-            datetime_string += str.decode()
-        return datetime_string.strip("\r\n\0")
+def is_equal(path1, path2):
+    size1 = os.path.getsize(path1)
+    size2 = os.path.getsize(path2)
+    if not size1 == size2:
+        return False
+    elif 0 == size1 and 0 == size2:
+        return True
+    else:
+        res1 = get_exif_dict(path1)
+        res2 = get_exif_dict(path2)
+        for name in res1:
+            if not name in res2:
+                return False
+            if not res1[name] == res2[name]:
+                return False
+        return True
+    return False
 
