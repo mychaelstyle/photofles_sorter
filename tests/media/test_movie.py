@@ -22,3 +22,25 @@ def test_get_created_time():
     assert not dt is None
     assert dt == '2015:12:14 03:25:08.000000'
 
+    path = 'fixtures/IMG_0493.m4v'
+    dt = movie.get_datetime(path)
+    assert not dt is None
+    assert dt == '2018:05:06 02:37:00.000000'
+
+def test_is_equal():
+    # 同じケース
+    path1 = 'fixtures/IMG_6478.mov'
+    path2 = 'fixtures/IMG_6478.mov'
+    res = movie.is_equal(path1, path1)
+    assert res
+    # ファイル名だけ違うケース
+    path1 = 'fixtures/IMG_8047.MOV'
+    path2 = 'fixtures/IMG_8047(1).MOV'
+    res = movie.is_equal(path1, path2)
+    assert res
+    # 違うケース
+    path1 = 'fixtures/IMG_6478.mov'
+    path2 = 'fixtures/IMG_8047.MOV'
+    res = movie.is_equal(path1, path2)
+    assert not res
+
