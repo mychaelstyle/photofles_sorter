@@ -1,3 +1,4 @@
+import os
 from PIL import Image
 from PIL.ExifTags import TAGS
 
@@ -50,6 +51,8 @@ def is_equal(path1, path2):
     items1 = get_exif_items(img1)
     items2 = get_exif_items(img2)
     if not len(items1) == len(items2):
+        return False
+    elif not os.path.getsize(path1) == os.path.getsize(path2):
         return False
 
     for key in items1:
